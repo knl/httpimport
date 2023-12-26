@@ -128,9 +128,19 @@ def http(url, headers={}, method='GET', proxy=None, ca_verify=True, ca_file=None
                 if ca_verify else ssl._create_unverified_context()
                 )
         headers = {k.lower(): v for k, v in resp.getheaders()}
-        return {'code': resp.code, 'body': resp.read(), 'headers': headers}
+        return {
+            'code': resp.code,
+            'body': resp.read(),
+            'headers': {k.lower(): v for k,v in headers.items()},
+            'url': resp.geturl(),
+        }
     except HTTPError as he:
-        return {'code': he.code, 'body': b'', 'headers': {}}
+        return {
+            'code': he.code,
+            'body': b'',
+            'headers': {},
+            'url': None,
+        }
 
 # ====================== Helpers ======================
 
@@ -331,6 +341,9 @@ class HttpImporter(object):
         # Try a request that can fail in case of connectivity issues
         resp = http(url, headers=self.headers, proxy=self.proxy,
                     method='GET', ca_verify=self.ca_verify, ca_file=self.ca_file)
+
+        logger.debug('[-] headers %s' % resp['headers'])
+        logger.debug('[-] original url %s, received url %s' % (url, resp['url']))
 
         # Try to extract an archive from URL
         self.archive = _retrieve_archive(resp['body'], url)

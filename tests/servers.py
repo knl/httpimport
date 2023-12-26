@@ -29,6 +29,19 @@ class HTTPHandler(SimpleHTTPRequestHandler):
         fullpath = os.path.join(self.server.base_path, relpath)
         return fullpath
 
+
+class HTTPHandlerToLogin(HTTPHandler):
+    """This handler always redirects to the login/signin page."""
+
+    def do_GET(self):
+        if self.path.endswith('signin.html'):
+            return HTTPHandler.do_GET(self)
+
+        self.send_response(302)
+        self.send_header('Location', '/signin.html')
+        self.end_headers()
+
+
 # Taken from:
 # https://github.com/operatorequals/httpimport/pull/42
 
@@ -106,7 +119,7 @@ __SERVERS = {
     'httpd_to_login': HTTPServer(
         WEB_DIRECTORY,
         (SERVER_HOST, 0),
-        RequestHandlerClass=HTTPHandler),
+        RequestHandlerClass=HTTPHandlerToLogin),
     'httpd_proxy': HTTPServer(
         WEB_DIRECTORY,
         (SERVER_HOST, 0),

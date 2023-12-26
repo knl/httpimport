@@ -12,6 +12,7 @@ class TestArchiveFiles(HttpImportTest):
     def setUp(self):
         # Initialize Content Server and Proxy
         servers.init('httpd')
+        servers.init('httpd_to_login')
         self.URL = URLS['web_dir'] % servers.port_for('httpd')
         # Allow plaintext (HTTP) for all test communications
         httpimport.set_profile('''[DEFAULT]
@@ -52,6 +53,16 @@ allow-plaintext: yes
             import test_package
 
         self.assertTrue(test_package)
+
+    def test_targz_import_with_redirect_to_login(self, url=None):
+        """This test should fail, as returned value is not an archive."""
+        if url is None:
+            url = URLS['tar_gz'] % servers.port_for('httpd_to_login')
+        try:
+            with httpimport.remote_repo(url):
+                import test_package
+        except (ImportError, SyntaxError) as e:
+            self.assertTrue(e)
 
     def test_tar_import(self, url=None):
         if url is None:
