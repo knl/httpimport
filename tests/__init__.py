@@ -17,12 +17,6 @@ elif "pypy".lower() in sys.version.lower():
 
 # Define HTTP Servers
 SERVER_HOST = '127.0.0.1'
-HTTP_PORT = 8000
-PROXY_PORT = 8080
-BASIC_AUTH_PORT = 8001
-BASIC_AUTH_PROXY_PORT = 8081
-HTTPS_PORT = 8443
-PROXY_TLS_PORT = 8480
 
 BASIC_AUTH_CREDS = 'dXNlcm5hbWU6cGFzc3dvcmQ='  # username:password
 ZIP_PASSWORD = 'P@ssw0rd!'

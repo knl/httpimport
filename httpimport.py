@@ -181,14 +181,14 @@ def _retrieve_archive(content, url):
         logger.info("[+] URL: '%s' is a Tarball" % url)
         return tar
     except tarfile.ReadError:
-        # logger.info("[*] URL: '%s' is not a (compressed) tarball" % url)
+        logger.info("[*] URL: '%s' is not a (compressed) tarball" % url)
         pass
     try:
         zip_ = zipfile.ZipFile(content_io)
         logger.info("[+] URL: '%s' is a ZIP file" % url)
         return zip_
     except zipfile.BadZipfile:
-        # logger.info("[*] Response of '%s' is not a ZIP file" % url)
+        logger.info("[*] Response of '%s' is not a ZIP file" % url)
         pass
     logger.info(
         "[*] URL: '%s' is not an archive. Continuing as Web Directory!" %
@@ -346,7 +346,7 @@ class HttpImporter(object):
           (object): This Importer object (`self`) if the module can be importer
             or `None` if the module is not available.
         """
-        logger.info(
+        print(
             "[*] Trying to find loadable code for module '%s', path: '%s'" %
             (fullname, path))
 
@@ -356,7 +356,7 @@ class HttpImporter(object):
                 url = self.url + '/' + path
                 resp = http(url, headers=self.headers, proxy=self.proxy, ca_verify=self.ca_verify, ca_file=self.ca_file)
                 if resp['code'] == 200:
-                    logger.debug(
+                    print(
                         "[+] Fetched Python code from '%s'. The module can be loaded!" %
                         (url))
                     self.modules[fullname] = {}
@@ -366,7 +366,7 @@ class HttpImporter(object):
                         '__init__.py')
                     return self
                 else:
-                    logger.debug(
+                    print(
                         "[-] URL '%s' return HTTP Status Code '%d'. Trying next URL..." %
                         (url, resp['code']))
                     continue
@@ -374,7 +374,7 @@ class HttpImporter(object):
                 try:
                     content = _open_archive_file(
                         self.archive, path, zip_pwd=self.zip_pwd)
-                    logger.debug(
+                    print(
                         "[+] Extracted '%s' from archive. The module can be loaded!" %
                         (path))
                     self.modules[fullname] = {}
@@ -384,11 +384,11 @@ class HttpImporter(object):
                         '__init__.py')
                     return self
                 except KeyError:
-                    logger.debug(
+                    print(
                         "[-] Extraction of '%s' from archive failed. Trying next filepath..." %
                         (path))
                     continue
-            logger.info(
+            print(
                 "[-] Module '%s' cannot be loaded from '%s'. Skipping..." %
                 (fullname, self.url))
         # Instruct 'import' to move on to next Importer

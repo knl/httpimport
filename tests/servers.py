@@ -11,12 +11,6 @@ from urllib.request import urlopen
 from tests import (
     SERVER_HOST,
     BASIC_AUTH_CREDS,
-    BASIC_AUTH_PORT,
-    BASIC_AUTH_PROXY_PORT,
-    HTTP_PORT,
-    HTTPS_PORT,
-    PROXY_PORT,
-    PROXY_TLS_PORT,
     HTTPS_CERT,
     PROXY_TLS_CERT,
     PROXY_HEADER,
@@ -98,8 +92,8 @@ class HTTPServer(BaseHTTPServer):
     def __init__(self, base_path, server_address,
                  RequestHandlerClass=HTTPHandler):
         self.base_path = base_path
-        self.port = server_address[1]
         BaseHTTPServer.__init__(self, server_address, RequestHandlerClass)
+        self.port = self.socket.getsockname()[1]
 
 ########### Globals ###########
 
@@ -107,33 +101,31 @@ class HTTPServer(BaseHTTPServer):
 __SERVERS = {
     'httpd': HTTPServer(
         WEB_DIRECTORY,
-        (SERVER_HOST,
-         HTTP_PORT),
+        (SERVER_HOST, 0),
+        RequestHandlerClass=HTTPHandler),
+    'httpd_to_login': HTTPServer(
+        WEB_DIRECTORY,
+        (SERVER_HOST, 0),
         RequestHandlerClass=HTTPHandler),
     'httpd_proxy': HTTPServer(
         WEB_DIRECTORY,
-        (SERVER_HOST,
-         PROXY_PORT),
+        (SERVER_HOST, 0),
         RequestHandlerClass=ProxyHandler),
     'httpd_basic_auth': HTTPServer(
         WEB_DIRECTORY,
-        (SERVER_HOST,
-         BASIC_AUTH_PORT),
+        (SERVER_HOST, 0),
         RequestHandlerClass=HTTPBasicAuthHandler),
     'httpd_basic_auth_proxy': HTTPServer(
         WEB_DIRECTORY,
-        (SERVER_HOST,
-         BASIC_AUTH_PROXY_PORT),
+        (SERVER_HOST, 0),
         RequestHandlerClass=HTTPBasicAuthProxyHandler),
     'httpd_tls': HTTPServer(
         WEB_DIRECTORY,
-        (SERVER_HOST,
-         HTTPS_PORT),
+        (SERVER_HOST, 0),
         RequestHandlerClass=HTTPHandler),
     'httpd_proxy_tls': HTTPServer(
         WEB_DIRECTORY,
-        (SERVER_HOST,
-         PROXY_TLS_PORT),
+        (SERVER_HOST, 0),
         RequestHandlerClass=ProxyHandler),
 }
 
@@ -171,3 +163,16 @@ def init(server_name=None):
 
     # Wait for everything to hopefully setup
     sleep(1)
+
+
+def port_for(server_name):
+    global RUNNING, __SERVERS
+
+    if server_name is None:
+        raise ValueError("Server name must be provided")
+    if server_name not in RUNNING:
+        return ValueError("Server {} is not running yet".format(server_name))
+    if server_name not in __SERVERS:
+        return ValueError("Unknown server {}".format(server_name))
+
+    return __SERVERS[server_name].port

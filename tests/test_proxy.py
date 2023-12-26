@@ -1,8 +1,6 @@
 import httpimport
-from tests import (BASIC_AUTH_CREDS, BASIC_AUTH_PROXY_PORT, HTTP_PORT,
-                   PROXY_PORT, URLS, SERVER_HOST, servers, HttpImportTest)
+from tests import (BASIC_AUTH_CREDS, URLS, SERVER_HOST, servers, HttpImportTest)
 
-URL = URLS['web_dir'] % HTTP_PORT
 
 
 class TestBase(HttpImportTest):
@@ -12,17 +10,18 @@ class TestBase(HttpImportTest):
         servers.init('httpd')
         servers.init('httpd_proxy')
         servers.init('httpd_basic_auth_proxy')
+        self.URL = URLS['web_dir'] % servers.port_for('httpd')
         # Allow plaintext (HTTP) for all test communications
         httpimport.set_profile('''[{url}]
 allow-plaintext: yes
-        '''.format(url=URL))
+        '''.format(url=self.URL))
 
     def test_proxy_simple_HTTP(self):
         httpimport.set_profile("""[{url}]
 proxy-url: http://{host}:{port}
-        """.format(host=SERVER_HOST, url=URL, port=PROXY_PORT))
+        """.format(host=SERVER_HOST, url=self.URL, port=servers.port_for('httpd_proxy')))
 
-        with httpimport.remote_repo(URL):
+        with httpimport.remote_repo(self.URL):
             import test_package
 
         self.assertTrue(test_package)
@@ -33,7 +32,7 @@ headers:
     Authorization: Basic {b64_creds}
 
 proxy-url: http://{host}:{port}
-        """.format(host=SERVER_HOST, url=URL, b64_creds=BASIC_AUTH_CREDS, port=BASIC_AUTH_PROXY_PORT))
-        with httpimport.remote_repo(URL):
+        """.format(host=SERVER_HOST, url=self.URL, b64_creds=BASIC_AUTH_CREDS, port=servers.port_for('httpd_basic_auth_proxy')))
+        with httpimport.remote_repo(self.URL):
             import test_package
         self.assertTrue(test_package)
