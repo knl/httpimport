@@ -12,7 +12,10 @@ import types
 import zipfile
 from contextlib import contextmanager
 from configparser import ConfigParser, NoSectionError
+from urllib.parse import urlparse, urlunparse
 import requests
+from requests import session
+from requests_gssapi import HTTPSPNEGOAuth
 
 # ====================== Metadata ======================
 
@@ -67,6 +70,9 @@ requirements-file:
 #   bs4: beautifulsoup4
 project-names:
 
+# Kerberos
+use-spnego: no
+
 ### Not Implemented ###
 # allow-compiled: no
 
@@ -100,7 +106,7 @@ logger.addHandler(log_handler)
 # ====================== HTTP abstraction ======================
 
 
-def http(url, headers={}, method='GET', proxy=None, ca_verify=True, ca_file=None):
+def http(url, headers={}, method='GET', proxy=None, ca_verify=True, ca_file=None, use_spnego=False):
     """ Wraps HTTP/S calls in one place
 
     Args:
@@ -109,10 +115,11 @@ def http(url, headers={}, method='GET', proxy=None, ca_verify=True, ca_file=None
         method (str):
         proxy (str):
         ca_verify (bool):
-        ca-file (str):
+        ca_file (str):
+        use_spnego (bool):
 
     Returns:
-        dict: A dict containing 'code', 'headers', 'body' of HTTP response
+        dict: A dict containing 'code', 'headers', 'body', and 'url' of HTTP response
     """
 
     proxies = None
@@ -121,25 +128,35 @@ def http(url, headers={}, method='GET', proxy=None, ca_verify=True, ca_file=None
         proxies = {scheme: host}
 
     if ca_verify and ca_file is not None:
+        # this is a setup for requests, where passing ca path as verify will
+        # allow verifying self signed certificates
         ca_verify = ca_file
         ca_file = None
 
     try:
-        resp = requests.request(
-            method=method.upper(),
-            url=url,
-            headers=headers,
-            proxies=proxies,
-            verify=ca_verify,
-            cert=ca_file,
-        )
-        headers = {k.lower(): v for k, v in resp.headers.items()}
-        return {
-            'code': resp.status_code,
-            'body': resp.content,
-            'headers': headers,
-            'url': resp.url,
-        }
+        with session() as s:
+            if use_spnego:
+                s.auth = HTTPSPNEGOAuth()
+                # hack for gitlab
+                if 'gitlab' in url:
+                    up = urlparse(url)
+                    s.get(urlunparse((up.scheme, up.netloc, "/users/auth/kerberos/negotiate", '', '', '')))
+
+            resp = s.request(
+                method=method.upper(),
+                url=url,
+                headers=headers,
+                proxies=proxies,
+                verify=ca_verify,
+                cert=ca_file,
+            )
+            headers = {k.lower(): v for k, v in resp.headers.items()}
+            return {
+                'code': resp.status_code,
+                'body': resp.content,
+                'headers': headers,
+                'url': resp.url,
+            }
     except requests.HTTPError as he:
         return {
             'code': he.status_code,
@@ -318,7 +335,8 @@ class HttpImporter(object):
             headers={},
             proxy=None,
             allow_plaintext=False,
-            ca_verify=True, ca_file=None, **kw):
+            ca_verify=True, ca_file=None, use_spnego=False,
+            **kw):
         # remove trailing '/' from URL parameter
         self.url = url if not url.endswith('/') else url[:-1]
         self.modules = {}
@@ -343,10 +361,11 @@ class HttpImporter(object):
         self.proxy = proxy
         self.ca_verify = ca_verify
         self.ca_file = ca_file
+        self.use_spnego = use_spnego
 
         # Try a request that can fail in case of connectivity issues
         resp = http(url, headers=self.headers, proxy=self.proxy,
-                    method='GET', ca_verify=self.ca_verify, ca_file=self.ca_file)
+                    method='GET', ca_verify=self.ca_verify, ca_file=self.ca_file, use_spnego=self.use_spnego)
 
         logger.debug('[-] headers %s' % resp['headers'])
         logger.debug('[-] original url %s, received url %s' % (url, resp['url']))
@@ -655,6 +674,8 @@ def __extract_profile_options(url=None, profile=None):
 
     ca_file = None if not options['ca-file'] else options['ca-file']
 
+    use_spnego = options['use-spnego'].lower() in ['true', 'yes', '1']
+
     # Get PyPI requirements
     requirements_file = options['requirements-file']
     requirements = options['requirements']
@@ -693,7 +714,8 @@ def __extract_profile_options(url=None, profile=None):
         'version_matrix': version_matrix,
         'project_matrix': project_matrix,
         'ca_verify': ca_verify,
-        'ca_file': ca_file
+        'ca_file': ca_file,
+        'use_spnego': use_spnego,
     }
 
 # ====================== Features ======================
