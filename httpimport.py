@@ -12,9 +12,7 @@ import types
 import zipfile
 from contextlib import contextmanager
 from configparser import ConfigParser, NoSectionError
-from urllib.error import HTTPError, URLError
-from urllib.request import (ProxyHandler, Request, build_opener,
-                            install_opener, urlopen)
+import requests
 
 # ====================== Metadata ======================
 
@@ -116,27 +114,35 @@ def http(url, headers={}, method='GET', proxy=None, ca_verify=True, ca_file=None
     Returns:
         dict: A dict containing 'code', 'headers', 'body' of HTTP response
     """
-    req = Request(url, headers=headers, method=method.upper())
 
+    proxies = None
     if proxy:
         scheme, host = proxy.split('://', 1)
-        req.set_proxy(host, scheme)
+        proxies = {scheme: host}
+
+    if ca_verify and ca_file is not None:
+        ca_verify = ca_file
+        ca_file = None
 
     try:
-        resp = urlopen(req,
-            context=ssl.create_default_context(cafile=ca_file)
-                if ca_verify else ssl._create_unverified_context()
-                )
-        headers = {k.lower(): v for k, v in resp.getheaders()}
+        resp = requests.request(
+            method=method.upper(),
+            url=url,
+            headers=headers,
+            proxies=proxies,
+            verify=ca_verify,
+            cert=ca_file,
+        )
+        headers = {k.lower(): v for k, v in resp.headers.items()}
         return {
-            'code': resp.code,
-            'body': resp.read(),
-            'headers': {k.lower(): v for k,v in headers.items()},
-            'url': resp.geturl(),
+            'code': resp.status_code,
+            'body': resp.content,
+            'headers': headers,
+            'url': resp.url,
         }
-    except HTTPError as he:
+    except requests.HTTPError as he:
         return {
-            'code': he.code,
+            'code': he.status_code,
             'body': b'',
             'headers': {},
             'url': None,

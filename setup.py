@@ -23,6 +23,7 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy',
@@ -37,5 +38,10 @@ setup(
         'loader',
         'memory',
         'http',
-        'network'],
+        'network',
+    ],
+    install_requires=[
+        'requests',
+        'requests_gssapi',
+    ],
 )

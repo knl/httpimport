@@ -1,3 +1,4 @@
+import requests
 
 import os
 from http.server import HTTPServer as BaseHTTPServer
@@ -5,9 +6,6 @@ from http.server import SimpleHTTPRequestHandler
 import ssl
 from threading import Thread
 from time import sleep
-from urllib.error import HTTPError
-from urllib.request import urlopen
-
 from tests import (
     SERVER_HOST,
     BASIC_AUTH_CREDS,
@@ -49,10 +47,10 @@ class HTTPHandlerToLogin(HTTPHandler):
 class ProxyHandler(SimpleHTTPRequestHandler):
     def do_GET(self, head=False):
         try:
-            resp = urlopen(self.path)
-            code = resp.code
-        except HTTPError as he:
-            code = he.code
+            resp = requests.get(self.path)
+            code = resp.status_code
+        except requests.HTTPError as he:
+            code = he.status_code
         self.send_response(code)
         self.send_header(PROXY_HEADER[0], PROXY_HEADER[1])
         self.end_headers()

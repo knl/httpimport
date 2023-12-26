@@ -1,5 +1,4 @@
-import urllib
-
+import requests
 import httpimport
 from tests import HttpImportTest, URLS, PROXY_HEADER, HTTPS_CERT
 from tests import servers
@@ -31,14 +30,14 @@ ca-verify: false
         try:
             with httpimport.remote_repo(self.URL, profile='verify'):
                 import test_package
-        except urllib.error.URLError:
+        except requests.exceptions.SSLError:
             self.assertTrue(True)
 
     def test_unverified_https_failure(self):
         try:
             with httpimport.remote_repo(self.URL):
                 import test_package
-        except urllib.error.URLError:
+        except requests.exceptions.SSLError:
             self.assertTrue(True)
 
     def test_verify_ca(self):
@@ -58,5 +57,5 @@ ca-file: /non-existent/
         try:
             with httpimport.remote_repo(self.URL, profile='invalid_ca_file'):
                 import test_package
-        except FileNotFoundError:
+        except OSError:
             self.assertTrue(True)

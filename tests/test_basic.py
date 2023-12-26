@@ -1,6 +1,3 @@
-from urllib.error import HTTPError
-from urllib.request import urlopen
-
 import httpimport
 from tests import PYTHON, TEST_MODULES, URLS, HttpImportTest
 from tests import servers
