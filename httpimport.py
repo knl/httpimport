@@ -395,7 +395,7 @@ class HttpImporter(object):
         for path in paths:
             if self.archive is None:
                 url = self.url + '/' + path
-                resp = http(url, headers=self.headers, proxy=self.proxy, ca_verify=self.ca_verify, ca_file=self.ca_file)
+                resp = http(url, headers=self.headers, proxy=self.proxy, ca_verify=self.ca_verify, ca_file=self.ca_file, use_spnego=self.use_spnego)
                 if resp['code'] == 200:
                     print(
                         "[+] Fetched Python code from '%s'. The module can be loaded!" %
