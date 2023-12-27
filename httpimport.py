@@ -136,11 +136,14 @@ def http(url, headers={}, method='GET', proxy=None, ca_verify=True, ca_file=None
     try:
         with session() as s:
             if use_spnego:
+                logger.info("[*] Using SPNEGO authentication")
                 s.auth = HTTPSPNEGOAuth()
                 # hack for gitlab
                 if 'gitlab' in url:
                     up = urlparse(url)
-                    s.get(urlunparse((up.scheme, up.netloc, "/users/auth/kerberos/negotiate", '', '', '')))
+                    neg_url = urlunparse((up.scheme, up.netloc, "/users/auth/kerberos/negotiate", '', '', ''))
+                    logger.info("[*] Gitlab URL detected, visiting %s first" % neg_url)
+                    s.get(neg_url)
 
             resp = s.request(
                 method=method.upper(),
